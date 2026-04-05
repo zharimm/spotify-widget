@@ -96,16 +96,18 @@ export async function GET() {
     if (nowRes.status === 200) {
       const data = await nowRes.json()
 
-      if (data.is_playing && data.item) {
+      if (data.item) {
+        // Return the track whether playing or paused — this is always
+        // the most recent track in the user's player
         return corsJson({
-          isPlaying: true,
+          isPlaying: !!data.is_playing,
           name: data.item.name ?? "Unknown Track",
           artist: Array.isArray(data.item.artists)
             ? data.item.artists.map((a: { name: string }) => a.name).join(", ")
             : "Unknown Artist",
           albumArt: data.item.album?.images?.[0]?.url ?? "",
           spotifyUrl: data.item.external_urls?.spotify ?? "",
-          playedAt: null,
+          playedAt: data.is_playing ? null : new Date().toISOString(),
         })
       }
     } else if (nowRes.status === 429) {
@@ -113,7 +115,7 @@ export async function GET() {
       return corsJson(MOCK_DATA, 429)
     }
 
-    // ── Fallback: recently played ────────────────────────
+    // ── Fallback: recently played (only if currently-playing returned nothing) ──
     const recentRes = await fetchRecentlyPlayed(accessToken)
 
     if (recentRes.status === 200) {

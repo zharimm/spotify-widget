@@ -67,36 +67,17 @@ export default function SpotifyWidget() {
     if (!track && !error) {
         return (
             <div style={styles.wrapper}>
+                <style>{`
+                    @keyframes soundwave1 { 0%, 100% { height: 8px; } 50% { height: 20px; } }
+                    @keyframes soundwave2 { 0%, 100% { height: 14px; } 50% { height: 6px; } }
+                    @keyframes soundwave3 { 0%, 100% { height: 10px; } 50% { height: 22px; } }
+                `}</style>
                 <div style={styles.outerShell}>
-                    <div style={styles.innerCard}>
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 12,
-                            }}
-                        >
-                            <div
-                                style={{
-                                    ...styles.artPlaceholder,
-                                    animation: "pulse 2s ease-in-out infinite",
-                                }}
-                            />
-                            <div style={{ flex: 1 }}>
-                                <div
-                                    style={{
-                                        ...styles.textPlaceholder,
-                                        width: "75%",
-                                    }}
-                                />
-                                <div
-                                    style={{
-                                        ...styles.textPlaceholder,
-                                        width: "50%",
-                                        marginTop: 8,
-                                    }}
-                                />
-                            </div>
+                    <div style={{ ...styles.innerCard, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 3, height: 24 }}>
+                            <div style={{ width: 3, borderRadius: 2, background: "#94a3b8", animation: "soundwave1 1s ease-in-out infinite" }} />
+                            <div style={{ width: 3, borderRadius: 2, background: "#94a3b8", animation: "soundwave2 1s ease-in-out infinite 0.15s" }} />
+                            <div style={{ width: 3, borderRadius: 2, background: "#94a3b8", animation: "soundwave3 1s ease-in-out infinite 0.3s" }} />
                         </div>
                     </div>
                 </div>
