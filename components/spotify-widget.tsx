@@ -11,30 +11,41 @@ interface SpotifyTrack {
   playedAt: string | null
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  })
 
 function formatLastPlayed(dateString: string): string {
-  const date = new Date(dateString)
-  return date
-    .toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return "recently"
+    const month = date.toLocaleString("en-US", { month: "short" })
+    const day = date.getDate()
+    const time = date.toLocaleString("en-US", {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZoneName: "short",
     })
-    .replace(",", " at")
+    return `${month} ${day} at ${time}`
+  } catch {
+    return "recently"
+  }
 }
 
 export function SpotifyWidget() {
-  const { data: track, isLoading } = useSWR<SpotifyTrack>("/api/spotify", fetcher, {
-    refreshInterval: 30000, // Refresh every 30 seconds
+  const { data: track, isLoading, error } = useSWR<SpotifyTrack>("/api/spotify", fetcher, {
+    refreshInterval: 30_000,
+    dedupingInterval: 5_000,
+    errorRetryCount: 3,
+    revalidateOnFocus: false,
   })
 
-  if (isLoading || !track) {
+  // Loading skeleton
+  if (isLoading || (!track && !error)) {
     return (
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm" role="status" aria-label="Loading Spotify widget">
         <div className="bg-card border border-border rounded-xl p-3 shadow-sm animate-pulse">
           <div className="flex items-center gap-3">
             <div className="h-14 w-14 rounded-lg bg-muted" />
@@ -51,16 +62,31 @@ export function SpotifyWidget() {
       </div>
     )
   }
+
+  // Error or no data — hide widget gracefully
+  if (error || !track) return null
+
+  const statusText = track.isPlaying
+    ? "Now playing"
+    : track.playedAt
+      ? `Last played ${formatLastPlayed(track.playedAt)}`
+      : "Recently played"
+
   return (
-    <div className="w-full max-w-sm font-sans">
+    <article
+      className="w-full max-w-sm font-sans"
+      role="region"
+      aria-label="Spotify listening activity"
+    >
       <div className="p-1 rounded-lg bg-slate-200">
         <div className="flex items-center gap-3 bg-background px-1 py-1 rounded-sm shadow-xs border-solid border border-slate-200">
-          {/* Album Art, Add in prod: track.albumArt || "/placeholder-album.png" */}
+          {/* Album Art */}
           <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded bg-muted">
             <img
               src={track.albumArt || "/placeholder-album.png"}
               alt={`${track.name} album art`}
               className="w-full h-full object-cover rounded"
+              loading="lazy"
             />
           </div>
 
@@ -72,6 +98,7 @@ export function SpotifyWidget() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:underline"
+                aria-label={`${track.name} by ${track.artist} — open in Spotify`}
               >
                 {track.name}
               </a>
@@ -81,21 +108,20 @@ export function SpotifyWidget() {
         </div>
 
         {/* Status */}
-        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground mr-1 ml-1 mb-0">
+        <div
+          className="mt-1 flex items-center gap-2 text-xs mx-1 mb-0"
+          role="status"
+          aria-live="polite"
+        >
           <span
-            className={`h-2 w-2 rounded-full text-slate-200 bg-slate-300 ${
+            className={`h-2 w-2 rounded-full ${
               track.isPlaying ? "bg-green-500 animate-pulse" : "bg-slate-400"
             }`}
+            aria-hidden="true"
           />
-          <span className="text-slate-500">
-            {track.isPlaying
-              ? "Now playing"
-              : track.playedAt
-                ? `Last played on ${formatLastPlayed(track.playedAt)}`
-                : "Recently played"}
-          </span>
+          <span className="text-slate-500">{statusText}</span>
         </div>
       </div>
-    </div>
+    </article>
   )
 }
