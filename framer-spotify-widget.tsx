@@ -193,6 +193,7 @@ const styles: Record<string, React.CSSProperties> = {
     wrapper: {
         fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
         width: "100%",
+        minWidth: 220,
         maxWidth: 384,
     },
     outerShell: {
