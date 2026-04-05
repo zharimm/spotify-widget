@@ -1,10 +1,9 @@
-"use client"
-
 // Framer Spotify Widget — Native Code Component
 // Copy this entire file into Framer as a Code Component.
 // It fetches live data from the Vercel API; no iFrame needed.
 
-import { useEffect, useState, useCallback } from "react"
+import * as React from "react"
+const { useState, useEffect, useCallback } = React
 
 // ─── Config ────────────────────────────────────────────────
 const API_URL = "https://v0-spotify-widget-gray.vercel.app/api/spotify"
@@ -68,12 +67,14 @@ export default function SpotifyWidget() {
   if (!track && !error) {
     return (
       <div style={styles.wrapper}>
-        <div style={styles.card}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ ...styles.artPlaceholder, animation: "pulse 2s ease-in-out infinite" }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ ...styles.textPlaceholder, width: "75%" }} />
-              <div style={{ ...styles.textPlaceholder, width: "50%", marginTop: 8 }} />
+        <div style={styles.outerShell}>
+          <div style={styles.innerCard}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ ...styles.artPlaceholder, animation: "pulse 2s ease-in-out infinite" }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ ...styles.textPlaceholder, width: "75%" }} />
+                <div style={{ ...styles.textPlaceholder, width: "50%", marginTop: 8 }} />
+              </div>
             </div>
           </div>
         </div>
@@ -81,8 +82,17 @@ export default function SpotifyWidget() {
     )
   }
 
-  // ── Error / no data — hide widget ──────────────────────
-  if (error || !track) return null
+  // ── Error / no data — show debug in preview, hide in prod ──
+  if (error || !track) {
+    // Visible in Framer canvas for debugging; swap to `return null` for production
+    return (
+      <div style={styles.wrapper}>
+        <div style={{ ...styles.outerShell, color: "#94a3b8", fontSize: 13, textAlign: "center" as const, padding: 14 }}>
+          {error ? "Could not load Spotify data — check API / CORS" : "No track data"}
+        </div>
+      </div>
+    )
+  }
 
   // ── Status indicator ───────────────────────────────────
   const statusDotStyle: React.CSSProperties = {
@@ -110,34 +120,37 @@ export default function SpotifyWidget() {
         }
       `}</style>
 
-      <div style={styles.card}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {/* Album Art */}
-          <img
-            src={track.albumArt}
-            alt={`${track.name} album art`}
-            width={56}
-            height={56}
-            style={styles.albumArt}
-          />
+      <div style={styles.outerShell}>
+        {/* Inner white card */}
+        <div style={styles.innerCard}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* Album Art */}
+            <img
+              src={track.albumArt}
+              alt={`${track.name} album art`}
+              width={56}
+              height={56}
+              style={styles.albumArt}
+            />
 
-          {/* Track Info */}
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <a
-              href={track.spotifyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={styles.trackName}
-              onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
-              onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
-            >
-              {track.name}
-            </a>
-            <p style={styles.artist}>{track.artist}</p>
+            {/* Track Info */}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <a
+                href={track.spotifyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={styles.trackName}
+                onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
+                onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
+              >
+                {track.name}
+              </a>
+              <p style={styles.artist}>{track.artist}</p>
+            </div>
           </div>
         </div>
 
-        {/* Status */}
+        {/* Status — sits in the gray area */}
         <div style={styles.statusRow} role="status" aria-live="polite">
           <span style={statusDotStyle} aria-hidden="true" />
           <span style={styles.statusText}>{statusText}</span>
@@ -153,6 +166,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
     width: "100%",
     maxWidth: 384,
+  },
+  outerShell: {
+    background: "#e2e8f0",
+    borderRadius: 10,
+    padding: 4,
+  },
+  innerCard: {
+    background: "#ffffff",
+    borderRadius: 4,
+    padding: 4,
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
   },
   card: {
     background: "#ffffff",
@@ -193,11 +218,13 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: 6,
-    marginTop: 10,
+    marginTop: 4,
+    marginLeft: 4,
+    marginBottom: 0,
   },
   statusText: {
     fontSize: 13,
-    color: "#a3a3a3",
+    color: "#64748b",
   },
   artPlaceholder: {
     width: 56,
