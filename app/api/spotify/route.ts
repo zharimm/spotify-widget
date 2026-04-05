@@ -12,15 +12,17 @@ const MOCK_DATA = {
   artist: "Billie Eilish",
   albumArt: "https://i.scdn.co/image/ab67616d0000b273aef0ee8e84a500b71bcf6b8e",
   spotifyUrl: "https://open.spotify.com/track/45zT4WLqNPvPqhNvfqZHnk",
-  playedAt: new Date(Date.now() - 3600_000).toISOString(), // 1 hour ago (dynamic)
+  playedAt: new Date(Date.now() - 3600_000).toISOString(),
 }
 
-// ─── CORS headers for cross-origin Framer requests ─────────
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Cache-Control": "no-cache, no-store, must-revalidate",
+// ─── Helper: JSON response with CORS ───────────────────────
+function corsJson(data: unknown, status = 200) {
+  const res = NextResponse.json(data, { status })
+  res.headers.set("Access-Control-Allow-Origin", "*")
+  res.headers.set("Access-Control-Allow-Methods", "GET, OPTIONS")
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type")
+  res.headers.set("Cache-Control", "no-cache, no-store, must-revalidate")
+  return res
 }
 
 // ─── Token refresh ─────────────────────────────────────────
@@ -68,7 +70,11 @@ async function fetchRecentlyPlayed(accessToken: string) {
 
 // ─── CORS preflight ────────────────────────────────────────
 export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
+  const res = new NextResponse(null, { status: 204 })
+  res.headers.set("Access-Control-Allow-Origin", "*")
+  res.headers.set("Access-Control-Allow-Methods", "GET, OPTIONS")
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type")
+  return res
 }
 
 // ─── Main handler ──────────────────────────────────────────
@@ -77,9 +83,8 @@ export async function GET() {
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
   const refreshToken = process.env.SPOTIFY_REFRESH_TOKEN
 
-  // If credentials aren't configured, return mock data
   if (!clientId || !clientSecret || !refreshToken) {
-    return NextResponse.json(MOCK_DATA, { headers: CORS_HEADERS })
+    return corsJson(MOCK_DATA)
   }
 
   try {
@@ -92,23 +97,20 @@ export async function GET() {
       const data = await nowRes.json()
 
       if (data.is_playing && data.item) {
-        return NextResponse.json(
-          {
-            isPlaying: true,
-            name: data.item.name ?? "Unknown Track",
-            artist: Array.isArray(data.item.artists)
-              ? data.item.artists.map((a: { name: string }) => a.name).join(", ")
-              : "Unknown Artist",
-            albumArt: data.item.album?.images?.[0]?.url ?? "",
-            spotifyUrl: data.item.external_urls?.spotify ?? "",
-            playedAt: null,
-          },
-          { headers: CORS_HEADERS }
-        )
+        return corsJson({
+          isPlaying: true,
+          name: data.item.name ?? "Unknown Track",
+          artist: Array.isArray(data.item.artists)
+            ? data.item.artists.map((a: { name: string }) => a.name).join(", ")
+            : "Unknown Artist",
+          albumArt: data.item.album?.images?.[0]?.url ?? "",
+          spotifyUrl: data.item.external_urls?.spotify ?? "",
+          playedAt: null,
+        })
       }
     } else if (nowRes.status === 429) {
       console.warn("Spotify rate limited — returning mock data")
-      return NextResponse.json(MOCK_DATA, { status: 429, headers: CORS_HEADERS })
+      return corsJson(MOCK_DATA, 429)
     }
 
     // ── Fallback: recently played ────────────────────────
@@ -119,29 +121,25 @@ export async function GET() {
       const track = data.items?.[0]
 
       if (track?.track) {
-        return NextResponse.json(
-          {
-            isPlaying: false,
-            name: track.track.name ?? "Unknown Track",
-            artist: Array.isArray(track.track.artists)
-              ? track.track.artists.map((a: { name: string }) => a.name).join(", ")
-              : "Unknown Artist",
-            albumArt: track.track.album?.images?.[0]?.url ?? "",
-            spotifyUrl: track.track.external_urls?.spotify ?? "",
-            playedAt: track.played_at ?? null,
-          },
-          { headers: CORS_HEADERS }
-        )
+        return corsJson({
+          isPlaying: false,
+          name: track.track.name ?? "Unknown Track",
+          artist: Array.isArray(track.track.artists)
+            ? track.track.artists.map((a: { name: string }) => a.name).join(", ")
+            : "Unknown Artist",
+          albumArt: track.track.album?.images?.[0]?.url ?? "",
+          spotifyUrl: track.track.external_urls?.spotify ?? "",
+          playedAt: track.played_at ?? null,
+        })
       }
     } else if (recentRes.status === 429) {
       console.warn("Spotify rate limited — returning mock data")
-      return NextResponse.json(MOCK_DATA, { status: 429, headers: CORS_HEADERS })
+      return corsJson(MOCK_DATA, 429)
     }
 
-    // ── No track data available ──────────────────────────
-    return NextResponse.json(MOCK_DATA, { headers: CORS_HEADERS })
+    return corsJson(MOCK_DATA)
   } catch (error) {
     console.error("Spotify API error:", error)
-    return NextResponse.json(MOCK_DATA, { status: 500, headers: CORS_HEADERS })
+    return corsJson(MOCK_DATA, 500)
   }
 }
