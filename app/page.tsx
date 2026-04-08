@@ -2,7 +2,7 @@ import { SpotifyWidget } from "@/components/spotify-widget"
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 px-0 py-0 bg-white">
+    <main className="min-h-screen flex items-center justify-center bg-white">
       <SpotifyWidget />
     </main>
   )

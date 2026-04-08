@@ -112,7 +112,7 @@ export async function GET() {
       }
     } else if (nowRes.status === 429) {
       console.warn("Spotify rate limited — returning mock data")
-      return corsJson(MOCK_DATA, 429)
+      return corsJson(MOCK_DATA)
     }
 
     // ── Fallback: recently played (only if currently-playing returned nothing) ──
@@ -136,7 +136,7 @@ export async function GET() {
       }
     } else if (recentRes.status === 429) {
       console.warn("Spotify rate limited — returning mock data")
-      return corsJson(MOCK_DATA, 429)
+      return corsJson(MOCK_DATA)
     }
 
     return corsJson(MOCK_DATA)
